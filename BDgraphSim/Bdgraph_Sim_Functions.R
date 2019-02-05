@@ -2,6 +2,7 @@ library(BDgraph)
 library(cvTools)
 library(huge)
 library(glasso)
+library(corpcor)
 
 
 ###############################
@@ -132,32 +133,25 @@ true_mat_gen <- function(n, p, density, df){
   # df = Degree of Freedom: Controls Partial Correlaton Range
   
   dat <- bdgraph.sim(p = p, n = n, prob = density, b = df)
-
-  # Sparse Popoulation Covariance Matrix  
-   
-  cov_mat <- dat$sigma  * dat$G
-  diag(cov_mat) <- diag(dat$sigma) 
-    
-  # Sparse Population Correlation Matrix
   
-  cor_mat <- cov2cor(dat$sigma) * dat$G
-    # Sigma is the generated covariance matrix
-    # G is the genearted adjacency matrix 
-    # Converting the covariance matrix into a correlation matrix and multiplying it by
-    #  the adjacency matrix gives us the sparse correlation matrix 
- 
-   diag(cor_mat) <- diag(cov2cor(dat$sigma)) 
-    # Adjaceny matrix has 0 in the diagonals so correct diagonals for the correlation matrix
-    #   need to be added separately
-
   # Create sparse partial correlation matrix form precision matrix K
   
   pc_mat <- prec2pc(dat$K) 
-  pcor_mat <- pc_mat * dat$G
+  pcor_mat <- pc_mat * dat$G # G is the adjacency matrix of the true graph structure
   diag(pcor_mat) <- diag(pc_mat)
   
+  # Create correlation matrix 
+  cor_mat <- pcor2cor(pcor_mat)
+  
+  
+  
+  # Sigma is the generated covariance matrix
+  # G is the genearted adjacency matrix 
+  # Converting the covariance matrix into a correlation matrix and multiplying it by
+  #  the adjacency matrix gives us the sparse correlation matrix 
+  
   # Returned objects
-  list(cov_mat = cov_mat, cor_mat = cor_mat, pcor_mat = pcor_mat, sig_mat = dat$G)
+  list(cor_mat = cor_mat, pcor_mat = pcor_mat, sig_mat = dat$G)
 }
 
 ## Function to calculate edge detection performance metrics 
@@ -198,9 +192,9 @@ mapply_func <- function(n, p, density , df){
   mat_list <- true_mat_gen(n, p, density, df)
   
   # Simulate a dataset from the population correlation matrix
-  d <- scale(MASS::mvrnorm(n=n, mu = rep(0,p), Sigma = (mat_list$cov_mat)))
- 
-   # Fit Model 
+  d <- scale(MASS::mvrnorm(n=n, mu = rep(0,p), Sigma = (mat_list$cor_mat)))
+  
+  # Fit Model 
   h <- huge::huge(d, method = "glasso",scr = F, nlambda = 100, lambda.min.ratio = .01)
   
   ## Select Lambda with EBIC
@@ -221,8 +215,8 @@ mapply_func <- function(n, p, density , df){
   edges <- matrix(0, 8, 4)
   
   rownames(edges) <- c("TP", "TN", "FP", "FN", 
-                      "Spec", "FPR", "Sens", 
-                      "TDR")
+                       "Spec", "FPR", "Sens", 
+                       "TDR")
   colnames(edges) <- c("ebic", "stars", "ric", "cv")
   
   #ebic
@@ -240,7 +234,7 @@ mapply_func <- function(n, p, density , df){
   #cv
   
   edges[, 4] <- performance_measures(mat_list$sig_mat, cv$wi)
-
+  
   
   # Save selected lambdas from each penalty selection method
   
@@ -250,7 +244,7 @@ mapply_func <- function(n, p, density , df){
   lam_cv <- rho_sel
   lambdas <- cbind(lam_ebic, lam_stars, lam_ric, lam_cv)
   rownames(lambdas)<- "Lambda"
- 
+  
   
   # Calculate estimated density for each network
   
@@ -266,11 +260,11 @@ mapply_func <- function(n, p, density , df){
   
   dens <- cbind(ebic_den, stars_den, ric_den, cv_den)
   rownames(dens)<- "Density"
-
+  
   
   # Calculate Global Correlation: correlation between edge weights in population 
   #   and corresponding estimated edge weight 
- 
+  
   true_pc <- as.numeric(mat_list$pcor_mat[upper.tri(mat_list$pcor_mat)]) 
   
   # EBIC
@@ -339,4 +333,3 @@ sim_run <- function(n, p, density, pc){
   }
   return(res_map)
 }
-
