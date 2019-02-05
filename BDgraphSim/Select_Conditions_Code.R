@@ -3,8 +3,8 @@
 ###  Freedom for  BDgraph     ###
 ###  Simulation Conditions    ###
 #################################
-
-source("SelectConditions_Functions.R")
+library(RCurl)
+source("https://raw.githubusercontent.com/AnnaWysocki/Network-Penalty-Selection/master/BDgraphSim/SelectConditions_Functions.R")
 
 ## Vector of possible degrees of freedom
 df_vec <- seq(3, 50, by =1)
