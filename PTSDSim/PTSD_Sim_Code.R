@@ -9,12 +9,12 @@
 
 library(RCurl)
 
-#source('https://raw.githubusercontent.com/AnnaWysocki/Network-Penalty-Selection/master/Functions.R')
-source("PTSD_Functions.R")
+source('https://raw.githubusercontent.com/AnnaWysocki/Network-Penalty-Selection/master/PTSDSim/PTSD_Sim_Functions.R')
+
 
 ## Load Data
-#data_ptsd <- read.csv(text= getURL("https://raw.githubusercontent.com/AnnaWysocki/Network-Penalty-Selection/master/PTSD_Data.csv"))
-data_ptsd <- read.csv("C:/Users/annawy/Box Sync/Research/Davis/Penalty Parameter Selection/R/PTSD/PTSD_Data.csv")
+data_ptsd <- read.csv(text= getURL("https://raw.githubusercontent.com/AnnaWysocki/Network-Penalty-Selection/master/PTSDSim/PTSD_Data.csv"))
+
 
 
 ## Create partial correlation bank from PTSD dataset 
@@ -24,13 +24,13 @@ dat <- cor2pcor(cor(na.omit(data_ptsd)))[upper.tri(cor2pcor(cor(na.omit(data_pts
 dat <- subset(dat, abs(dat) > 0.05)
 
 #number of simulations
-sim <- 1#00
-nested_sim <- 2#00
+sim <- 1000
+nested_sim <- 1000
 
 #Create conditions/condition matrix 
-n <- c(100)#, 200, 250, 500, 1000, 2000, 3000)
-p <- c(10)#, 20)
-sparsity <- c (.50)#, .65, .80)
+n <- c(100, 200, 250, 500, 1000, 2000, 3000)
+p <- c(10, 20)
+sparsity <- c (.50, .65, .80)
 conditions <- expand.grid(n, p, sparsity)
 iteration <- as.list(1:sim)
 
